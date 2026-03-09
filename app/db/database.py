@@ -1,5 +1,6 @@
 """
 Database Connection and Session Management
+Supports both SQLite (local/development) and PostgreSQL (production/Render)
 """
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -9,14 +10,34 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Handle SQLite connect_args for thread safety
-connect_args = {}
+# Build engine kwargs based on database type
+engine_kwargs = {}
+
 if settings.DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+    # SQLite: disable same-thread check (needed for FastAPI async)
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+elif settings.DATABASE_URL.startswith("postgresql") or settings.DATABASE_URL.startswith("postgres"):
+    # PostgreSQL: configure connection pool for production
+    engine_kwargs["pool_size"] = 5
+    engine_kwargs["max_overflow"] = 10
+    engine_kwargs["pool_pre_ping"] = True  # Verify connections before use
+    engine_kwargs["pool_recycle"] = 300   # Recycle connections every 5 min
+
+    # Render provides postgres:// URLs, SQLAlchemy needs postgresql://
+    database_url = settings.DATABASE_URL
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+else:
+    database_url = settings.DATABASE_URL
+
+# Use the corrected URL for PostgreSQL
+database_url = settings.DATABASE_URL
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
 
 engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args=connect_args,
+    database_url,
+    **engine_kwargs,
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
