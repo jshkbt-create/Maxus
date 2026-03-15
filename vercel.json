@@ -4,6 +4,8 @@
   "framework": "others",
   "env": {
     "ENVIRONMENT": "production",
-    "DATABASE_URL": "sqlite:////tmp/manus_agent.db"
-  }
+    "DEBUG": "false"
+  },
+  "buildCommand": "pip install -r requirements.txt",
+  "installCommand": "pip install -r requirements.txt"
 }
