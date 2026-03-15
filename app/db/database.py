@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 # Build engine kwargs based on database type
 engine_kwargs = {}
+database_url = settings.DATABASE_URL
 
 if settings.DATABASE_URL.startswith("sqlite"):
     # SQLite: disable same-thread check (needed for FastAPI async)
@@ -24,16 +25,8 @@ elif settings.DATABASE_URL.startswith("postgresql") or settings.DATABASE_URL.sta
     engine_kwargs["pool_recycle"] = 300   # Recycle connections every 5 min
 
     # Render provides postgres:// URLs, SQLAlchemy needs postgresql://
-    database_url = settings.DATABASE_URL
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
-else:
-    database_url = settings.DATABASE_URL
-
-# Use the corrected URL for PostgreSQL
-database_url = settings.DATABASE_URL
-if database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
 
 engine = create_engine(
     database_url,
